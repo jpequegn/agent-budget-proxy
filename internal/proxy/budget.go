@@ -9,8 +9,8 @@ type Quote struct {
 }
 
 func refill(b Bucket, budget Budget, now int64) Bucket {
-	if b.At == 0 {
-		return Bucket{Milli: budget.Burst * 1000, At: now}
+	if !b.Initialized {
+		return Bucket{Milli: budget.Burst * 1000, At: now, Initialized: true}
 	}
 	if now <= b.At {
 		return b

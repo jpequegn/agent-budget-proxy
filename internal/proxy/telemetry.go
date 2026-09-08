@@ -3,14 +3,46 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	sdk "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"io"
+	"net"
+	"net/url"
 	"sync"
 	"time"
 )
+
+// WaitCollector is an opt-in demo startup check, never an authorization gate.
+func WaitCollector(ctx context.Context, endpoint string) error {
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return fmt.Errorf("collector endpoint must be an HTTP(S) URL")
+	}
+	port := u.Port()
+	if port == "" {
+		port = "80"
+		if u.Scheme == "https" {
+			port = "443"
+		}
+	}
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		conn, err := (&net.Dialer{Timeout: time.Second}).DialContext(ctx, "tcp", net.JoinHostPort(u.Hostname(), port))
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("collector not ready: %w", ctx.Err())
+		case <-ticker.C:
+		}
+	}
+}
 
 type localExporter struct {
 	mu     sync.Mutex

@@ -1,0 +1,5 @@
+.git
+data
+reports
+*.db
+abp

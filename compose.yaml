@@ -1,0 +1,13 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector:0.133.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./examples/collector.yaml:/etc/otelcol/config.yaml:ro
+  demo:
+    build: .
+    command: ["demo", "--out", "/tmp/demo", "--wait-collector"]
+    environment:
+      ABP_OTLP_ENDPOINT: http://collector:4318
+    depends_on:
+      - collector

@@ -79,5 +79,6 @@ func (e *Engine) Execute(ctx context.Context, cap string, req Request, tool Tool
 	if err != nil {
 		return a, fmt.Errorf("settlement unavailable; do not redispatch: %w", err)
 	}
+	parent.SetAttributes(actionAttributes(settled)...)
 	return settled, nil
 }
