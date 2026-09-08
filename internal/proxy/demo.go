@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 )
 
 type Report struct {
@@ -59,6 +60,9 @@ func WriteJSON(path string, v any) error {
 	return f.Sync()
 }
 func Demo(out string) (Report, error) {
+	return DemoWithEndpoint(out, "")
+}
+func DemoWithEndpoint(out, endpoint string) (Report, error) {
 	if err := os.MkdirAll(filepath.Dir(out), 0700); err != nil {
 		return Report{}, err
 	}
@@ -71,6 +75,21 @@ func Demo(out string) (Report, error) {
 	}
 	defer s.Close()
 	e := NewEngine(s)
+	traceFile, err := os.OpenFile(filepath.Join(out, "traces.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return Report{}, err
+	}
+	defer traceFile.Close()
+	provider, err := Telemetry(context.Background(), endpoint, traceFile)
+	if err != nil {
+		return Report{}, err
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		provider.Shutdown(ctx)
+	}()
+	e.Tracer = provider.Tracer("agent-budget-proxy")
 	_, cap, err := e.Create(RunRequest{Budget: DefaultBudget(), Scope: []string{"inspect", "model", "delete", "paid_tool", "provision"}, Region: "us"}, "")
 	if err != nil {
 		return Report{}, err

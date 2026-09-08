@@ -97,6 +97,7 @@ type Outcome struct {
 	Detail    string `json:"detail"`
 }
 type Action struct {
+	PolicySnapshot  *Policy  `json:"policy_snapshot,omitempty"`
 	ID              string   `json:"id"`
 	RunID           string   `json:"run_id"`
 	Agent           string   `json:"agent"`
