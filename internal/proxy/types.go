@@ -107,6 +107,7 @@ type Action struct {
 	State          string   `json:"state"`
 	Reserved       int64    `json:"reserved_micros"`
 	ReservedTokens int64    `json:"reserved_tokens"`
+	ReservedWrites int64    `json:"reserved_writes"`
 	At             int64    `json:"at"`
 	SettledAt      int64    `json:"settled_at,omitempty"`
 	ApprovedBy     string   `json:"approved_by,omitempty"`
