@@ -18,7 +18,15 @@ import (
 func command() *cobra.Command {
 	root := &cobra.Command{Use: "abp", Short: "Local synthetic agent-run budget proxy", SilenceUsage: true}
 	var db, out, address, experimentOut string
+	var waitCollector bool
 	demo := &cobra.Command{Use: "demo", Short: "Run a synthetic scenario; explicitly approves one demo deletion", RunE: func(c *cobra.Command, args []string) error {
+		if waitCollector {
+			ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+			defer cancel()
+			if err := proxy.WaitCollector(ctx, os.Getenv("ABP_OTLP_ENDPOINT")); err != nil {
+				return err
+			}
+		}
 		r, err := proxy.DemoWithEndpoint(out, os.Getenv("ABP_OTLP_ENDPOINT"))
 		if err != nil {
 			return err
@@ -28,6 +36,7 @@ func command() *cobra.Command {
 		return nil
 	}}
 	demo.Flags().StringVar(&out, "out", "data/demo", "New output directory")
+	demo.Flags().BoolVar(&waitCollector, "wait-collector", false, "Wait up to ten seconds for the configured collector before demo startup")
 	root.AddCommand(demo)
 	inspect := &cobra.Command{Use: "inspect", Short: "Verify the ledger and print a secret-free report", RunE: func(c *cobra.Command, args []string) error {
 		if _, err := os.Stat(db); err != nil {
@@ -46,6 +55,25 @@ func command() *cobra.Command {
 	}}
 	inspect.Flags().StringVar(&db, "db", "data/ledger.db", "SQLite ledger")
 	root.AddCommand(inspect)
+	var customer string
+	billing := &cobra.Command{Use: "billing-export", Short: "Export settled synthetic usage for metered-billing-sandbox", RunE: func(c *cobra.Command, args []string) error {
+		if _, err := os.Stat(db); err != nil {
+			return err
+		}
+		s, err := proxy.Open(db)
+		if err != nil {
+			return err
+		}
+		defer s.Close()
+		events, err := s.BillingEvents(customer)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(c.OutOrStdout()).Encode(events)
+	}}
+	billing.Flags().StringVar(&db, "db", "data/ledger.db", "SQLite ledger")
+	billing.Flags().StringVar(&customer, "customer", "local_lab", "Billing sandbox customer identifier")
+	root.AddCommand(billing)
 	replay := &cobra.Command{Use: "replay", Short: "Dry-run saved policy and accounting decisions without calling tools", RunE: func(c *cobra.Command, args []string) error {
 		if _, err := os.Stat(db); err != nil {
 			return err

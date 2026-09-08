@@ -12,6 +12,7 @@ func TestPolicyGatesAndApproval(t *testing.T) {
 		{Request{Key: "eu", Verb: "provision", Resource: "storage-eu", Units: 1, DataClass: "public"}, "locality"},
 		{Request{Key: "class", Verb: "paid_tool", Resource: "paid-search", Units: 1, DataClass: "internal"}, "data_class"},
 		{Request{Key: "storm", Verb: "delete", Resource: "delete", Units: 50, DataClass: "internal"}, "delete_tripwire"},
+		{Request{Key: "quota", Verb: "paid_tool", Resource: "paid-search", Units: 11, DataClass: "public"}, "resource_quota"},
 	} {
 		a, fresh, err := e.Begin(cap, tc.req)
 		if err != nil || fresh || a.Decision.Rule != tc.rule {

@@ -63,6 +63,9 @@ func Open(path string) (*Store, error) {
 func (s *Store) Close() error { return s.db.Close() }
 func load(tx *sql.Tx) (State, string, int64, error) {
 	var state State
+	if err := verifyAudit(tx); err != nil {
+		return state, "", 0, err
+	}
 	var body string
 	if err := tx.QueryRow("SELECT body FROM state WHERE id=1").Scan(&body); err != nil {
 		return state, "", 0, err
@@ -161,6 +164,10 @@ func (s *Store) Verify() error {
 		return err
 	}
 	defer tx.Rollback()
+	_, _, _, err = load(tx)
+	return err
+}
+func verifyAudit(tx *sql.Tx) error {
 	rows, err := tx.Query("SELECT seq,previous,hash,body FROM audit ORDER BY seq")
 	if err != nil {
 		return err
@@ -186,14 +193,18 @@ func (s *Store) Verify() error {
 	if err != nil {
 		return err
 	}
-	_, _, _, err = load(tx)
-	return err
+	return nil
 }
 func (s *Store) Events() ([]Event, error) {
-	if err := s.Verify(); err != nil {
+	tx, err := s.db.BeginTx(context.Background(), nil)
+	if err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query("SELECT body FROM audit ORDER BY seq")
+	defer tx.Rollback()
+	if _, _, _, err = load(tx); err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query("SELECT body FROM audit ORDER BY seq")
 	if err != nil {
 		return nil, err
 	}

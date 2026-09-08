@@ -38,31 +38,31 @@ type RunRequest struct {
 	Region string   `json:"region"`
 }
 type Bucket struct {
-	Milli int64 `json:"milli"`
-	At    int64 `json:"at"`
+	Initialized bool  `json:"initialized"`
+	Milli       int64 `json:"milli"`
+	At          int64 `json:"at"`
 }
 type Run struct {
-	ID             string            `json:"id"`
-	Agent          string            `json:"agent"`
-	Session        string            `json:"session"`
-	Parent         string            `json:"parent,omitempty"`
-	CapabilityHash string            `json:"-"`
-	Budget         Budget            `json:"budget"`
-	Scope          []string          `json:"scope"`
-	Region         string            `json:"region"`
-	Created        int64             `json:"created"`
-	Expires        int64             `json:"expires"`
-	LastClock      int64             `json:"last_clock"`
-	Spent          int64             `json:"spent_micros"`
-	Held           int64             `json:"held_micros"`
-	Tokens         int64             `json:"tokens"`
-	HeldTokens     int64             `json:"held_tokens"`
-	Writes         int64             `json:"writes"`
-	Frozen         bool              `json:"frozen"`
-	Buckets        map[string]Bucket `json:"buckets"`
-	Window         int64             `json:"window"`
-	Deletes        int64             `json:"deletes"`
-	FailedWrites   int64             `json:"failed_writes"`
+	ID           string            `json:"id"`
+	Agent        string            `json:"agent"`
+	Session      string            `json:"session"`
+	Parent       string            `json:"parent,omitempty"`
+	Budget       Budget            `json:"budget"`
+	Scope        []string          `json:"scope"`
+	Region       string            `json:"region"`
+	Created      int64             `json:"created"`
+	Expires      int64             `json:"expires"`
+	LastClock    int64             `json:"last_clock"`
+	Spent        int64             `json:"spent_micros"`
+	Held         int64             `json:"held_micros"`
+	Tokens       int64             `json:"tokens"`
+	HeldTokens   int64             `json:"held_tokens"`
+	Writes       int64             `json:"writes"`
+	Frozen       bool              `json:"frozen"`
+	Buckets      map[string]Bucket `json:"buckets"`
+	Window       int64             `json:"window"`
+	Deletes      int64             `json:"deletes"`
+	FailedWrites int64             `json:"failed_writes"`
 }
 type Request struct {
 	Key       string `json:"key"`

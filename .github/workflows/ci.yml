@@ -14,4 +14,8 @@ jobs:
       - run: go vet ./...
       - run: go test -race ./...
       - run: go build ./...
-
+      - run: go build -o abp ./cmd/abp
+      - run: python3 examples/api_smoke.py ./abp
+      - run: go run ./cmd/abp demo --out data/ci-demo
+      - run: go run ./cmd/abp replay --db data/ci-demo/ledger.db
+      - run: go run ./cmd/abp experiment --out reports/ci-incident
