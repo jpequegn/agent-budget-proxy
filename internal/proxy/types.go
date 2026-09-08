@@ -96,23 +96,28 @@ type Outcome struct {
 	Detail    string `json:"detail"`
 }
 type Action struct {
-	ID             string   `json:"id"`
-	RunID          string   `json:"run_id"`
-	Agent          string   `json:"agent"`
-	Session        string   `json:"session"`
-	Request        Request  `json:"request"`
-	Fingerprint    string   `json:"fingerprint"`
-	Effective      Request  `json:"effective"`
-	Decision       Decision `json:"decision"`
-	State          string   `json:"state"`
-	Reserved       int64    `json:"reserved_micros"`
-	ReservedTokens int64    `json:"reserved_tokens"`
-	ReservedWrites int64    `json:"reserved_writes"`
-	At             int64    `json:"at"`
-	SettledAt      int64    `json:"settled_at,omitempty"`
-	ApprovedBy     string   `json:"approved_by,omitempty"`
-	ApprovalUntil  int64    `json:"approval_until,omitempty"`
-	Outcome        *Outcome `json:"outcome,omitempty"`
+	ID              string   `json:"id"`
+	RunID           string   `json:"run_id"`
+	Agent           string   `json:"agent"`
+	Session         string   `json:"session"`
+	Request         Request  `json:"request"`
+	Fingerprint     string   `json:"fingerprint"`
+	Effective       Request  `json:"effective"`
+	Decision        Decision `json:"decision"`
+	State           string   `json:"state"`
+	Reserved        int64    `json:"reserved_micros"`
+	ReservedTokens  int64    `json:"reserved_tokens"`
+	EstimatedCost   int64    `json:"estimated_cost_micros"`
+	EstimatedTokens int64    `json:"estimated_tokens"`
+	ReservedWrites  int64    `json:"reserved_writes"`
+	At              int64    `json:"at"`
+	SettledAt       int64    `json:"settled_at,omitempty"`
+	ApprovedBy      string   `json:"approved_by,omitempty"`
+	ApprovalDigest  string   `json:"approval_digest,omitempty"`
+	PolicyHash      string   `json:"policy_hash"`
+	Resource        Resource `json:"resource_snapshot"`
+	ApprovalUntil   int64    `json:"approval_until,omitempty"`
+	Outcome         *Outcome `json:"outcome,omitempty"`
 }
 type State struct {
 	Version      int                `json:"version"`

@@ -6,11 +6,12 @@ import (
 )
 
 type Engine struct {
-	Store *Store
-	Clock func() time.Time
+	Policy Policy
+	Store  *Store
+	Clock  func() time.Time
 }
 
-func NewEngine(s *Store) *Engine { return &Engine{Store: s, Clock: time.Now} }
+func NewEngine(s *Store) *Engine { return &Engine{Store: s, Clock: time.Now, Policy: DefaultPolicy()} }
 func (e *Engine) now() int64     { return e.Clock().UnixMilli() }
 func authenticate(s *State, cap string, now int64) (*Run, error) {
 	id, ok := s.Capabilities[Digest([]byte(cap))]
