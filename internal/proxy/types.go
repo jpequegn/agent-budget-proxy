@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -145,7 +146,14 @@ func Hash(v any) string {
 }
 func Digest(b []byte) string { sum := sha256.Sum256(b); return hex.EncodeToString(sum[:]) }
 func Decode(r io.Reader, v any) error {
-	d := json.NewDecoder(io.LimitReader(r, 16385))
+	b, err := io.ReadAll(io.LimitReader(r, 16385))
+	if err != nil {
+		return err
+	}
+	if len(b) > 16384 {
+		return fmt.Errorf("JSON body too large")
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		return err
