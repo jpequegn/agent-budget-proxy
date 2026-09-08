@@ -17,9 +17,9 @@ import (
 
 func command() *cobra.Command {
 	root := &cobra.Command{Use: "abp", Short: "Local synthetic agent-run budget proxy", SilenceUsage: true}
-	var db, out, address string
+	var db, out, address, experimentOut string
 	demo := &cobra.Command{Use: "demo", Short: "Run a synthetic scenario; explicitly approves one demo deletion", RunE: func(c *cobra.Command, args []string) error {
-		r, err := proxy.Demo(out)
+		r, err := proxy.DemoWithEndpoint(out, os.Getenv("ABP_OTLP_ENDPOINT"))
 		if err != nil {
 			return err
 		}
@@ -46,6 +46,32 @@ func command() *cobra.Command {
 	}}
 	inspect.Flags().StringVar(&db, "db", "data/ledger.db", "SQLite ledger")
 	root.AddCommand(inspect)
+	replay := &cobra.Command{Use: "replay", Short: "Dry-run saved policy and accounting decisions without calling tools", RunE: func(c *cobra.Command, args []string) error {
+		if _, err := os.Stat(db); err != nil {
+			return err
+		}
+		s, err := proxy.Open(db)
+		if err != nil {
+			return err
+		}
+		defer s.Close()
+		result, err := proxy.Replay(s)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(c.OutOrStdout()).Encode(result)
+	}}
+	replay.Flags().StringVar(&db, "db", "data/ledger.db", "SQLite ledger")
+	root.AddCommand(replay)
+	experiment := &cobra.Command{Use: "experiment", Short: "Compare fixed synthetic incidents under three policies", RunE: func(c *cobra.Command, args []string) error {
+		result, err := proxy.Experiment(experimentOut)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(c.OutOrStdout()).Encode(result)
+	}}
+	experiment.Flags().StringVar(&experimentOut, "out", "reports/incident", "New output directory")
+	root.AddCommand(experiment)
 	serve := &cobra.Command{Use: "serve", Short: "Serve mock tools on loopback only", RunE: func(c *cobra.Command, args []string) error {
 		host, _, err := net.SplitHostPort(address)
 		if err != nil {
@@ -67,7 +93,23 @@ func command() *cobra.Command {
 			return err
 		}
 		defer s.Close()
-		handler, err := proxy.HTTP(proxy.NewEngine(s), &proxy.MockTool{}, proxy.Credentials{Admin: admin, Reviewer: reviewer, ReviewerID: "local-reviewer"})
+		traceFile, err := os.OpenFile(db+".traces.jsonl", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer traceFile.Close()
+		provider, err := proxy.Telemetry(c.Context(), os.Getenv("ABP_OTLP_ENDPOINT"), traceFile)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			provider.Shutdown(ctx)
+		}()
+		engine := proxy.NewEngine(s)
+		engine.Tracer = provider.Tracer("agent-budget-proxy")
+		handler, err := proxy.HTTP(engine, &proxy.MockTool{}, proxy.Credentials{Admin: admin, Reviewer: reviewer, ReviewerID: "local-reviewer"})
 		if err != nil {
 			return err
 		}

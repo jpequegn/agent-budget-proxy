@@ -2,10 +2,12 @@ package proxy
 
 import (
 	"fmt"
+	"go.opentelemetry.io/otel/trace"
 	"time"
 )
 
 type Engine struct {
+	Tracer trace.Tracer
 	Policy Policy
 	Store  *Store
 	Clock  func() time.Time

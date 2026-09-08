@@ -17,6 +17,7 @@ type Event struct {
 	At        int64    `json:"at"`
 	StateHash string   `json:"state_hash"`
 	Actions   []Action `json:"actions,omitempty"`
+	Runs      []Run    `json:"runs,omitempty"`
 }
 
 func Open(path string) (*Store, error) {
@@ -107,6 +108,10 @@ func (s *Store) Update(kind string, at int64, fn func(*State) error) error {
 		return fmt.Errorf("ledger event capacity reached")
 	}
 	before := map[string]string{}
+	beforeRuns := map[string]string{}
+	for k, r := range state.Runs {
+		beforeRuns[k] = Hash(r)
+	}
 	for k, a := range state.Actions {
 		before[k] = Hash(a)
 	}
@@ -117,6 +122,11 @@ func (s *Store) Update(kind string, at int64, fn func(*State) error) error {
 		return fmt.Errorf("ledger state capacity reached")
 	}
 	event := Event{Kind: kind, At: at, StateHash: Hash(state)}
+	for k, r := range state.Runs {
+		if beforeRuns[k] != Hash(r) {
+			event.Runs = append(event.Runs, *r)
+		}
+	}
 	for k, a := range state.Actions {
 		if before[k] != Hash(a) {
 			event.Actions = append(event.Actions, *a)

@@ -52,19 +52,30 @@ func (m *MockTool) Calls() int {
 	return n
 }
 func (e *Engine) Execute(ctx context.Context, cap string, req Request, tool Tool) (Action, error) {
+	ctx, parent := e.tracer().Start(ctx, "action.execute")
+	defer parent.End()
+	_, reservation := e.tracer().Start(ctx, "ledger.reserve")
 	a, fresh, err := e.Begin(cap, req)
+	reservation.SetAttributes(actionAttributes(a)...)
+	reservation.End()
+	parent.SetAttributes(actionAttributes(a)...)
 	if err != nil || !fresh {
 		return a, err
 	}
 	bounded, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	start := time.Now()
-	out, err := tool.Call(bounded, a)
+	callContext, callSpan := e.tracer().Start(bounded, "mock.call")
+	out, err := tool.Call(callContext, a)
+	callSpan.End()
 	if err != nil {
 		return a, fmt.Errorf("outcome uncertain; reservation retained: %w", err)
 	}
 	out.LatencyMS = time.Since(start).Milliseconds()
+	_, settlement := e.tracer().Start(ctx, "ledger.settle")
 	settled, err := e.settle(a.RunID, a.Request.Key, out)
+	settlement.SetAttributes(actionAttributes(settled)...)
+	settlement.End()
 	if err != nil {
 		return a, fmt.Errorf("settlement unavailable; do not redispatch: %w", err)
 	}

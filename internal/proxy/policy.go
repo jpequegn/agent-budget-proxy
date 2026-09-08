@@ -195,6 +195,9 @@ func (e *Engine) Begin(cap string, req Request) (Action, bool, error) {
 			}
 		}
 		q := e.Policy.evaluate(chain, req)
+		policyCopy := e.Policy
+		a.PolicySnapshot = &policyCopy
+		a.PolicyHash = Hash(e.Policy)
 		a.Effective = q.Effective
 		a.EstimatedCost = q.Cost
 		a.EstimatedTokens = q.Tokens
